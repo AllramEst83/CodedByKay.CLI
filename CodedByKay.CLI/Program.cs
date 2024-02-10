@@ -11,7 +11,6 @@ class Program
 {
     private static List<string> commandHistory = [];
     private static int historyIndex = -1;
-    private static string model = string.Empty;
     static async Task Main(string[] args)
     {
         var configuration = ServiceCollectionExtensions.BuildConfiguration();
@@ -21,9 +20,8 @@ class Program
             throw new Exception("ApplicationSettings can not be null.");
         }
 
-        model = appSettings.Model;
         var serviceCollection = new ServiceCollection();
-        ServiceCollectionExtensions.AddCustomSmartDialogueServices(serviceCollection, appSettings, model);
+        ServiceCollectionExtensions.AddCustomSmartDialogueServices(serviceCollection, appSettings);
         var serviceProvider = serviceCollection.BuildServiceProvider();
         
         HandletDialogues.DisplayHelp();
@@ -111,8 +109,8 @@ class Program
             // Handle other commands
             await Parser.Default.ParseArguments<Options.SmartDialogueOptions, Options.AssistantsOptions>(new[] { command })
                 .MapResult(
-                    (Options.SmartDialogueOptions opts) => HandletDialogues.HandleSmartDialogue(serviceProvider, Guid.NewGuid(), model),
-                    (Options.AssistantsOptions opts) => HandletDialogues.HandleAssistants(serviceProvider, Guid.NewGuid(), model),
+                    (Options.SmartDialogueOptions opts) => HandletDialogues.HandleSmartDialogue(serviceProvider, Guid.NewGuid(), "AI"),
+                    (Options.AssistantsOptions opts) => HandletDialogues.HandleAssistants(serviceProvider, Guid.NewGuid(), "AI"),
                     errs =>
                     {
                         foreach (var err in errs)

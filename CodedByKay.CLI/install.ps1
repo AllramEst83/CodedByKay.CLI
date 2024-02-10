@@ -1,10 +1,9 @@
 ﻿# PowerShell script to publish, rename, and move .NET application executable from the project root
 
+#----------------------------------------------------------------------------------------------------------
 # Before running the script make shure the terminal path is at: PS <your path c:>\CodedByKay.CLI\CodedByKay.CLI>
 # You shuld be in the same terminal path as the file install.ps1
-
-
-
+#---------------------------------------------------------------------------------------------------------
 
 # Navigate to the script's directory to ensure relative paths work
 Set-Location -Path $PSScriptRoot

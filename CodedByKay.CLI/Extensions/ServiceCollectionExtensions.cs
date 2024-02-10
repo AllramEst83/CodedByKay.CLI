@@ -9,7 +9,7 @@ namespace CodedByKay.CLI.Extensions
 {
     internal static class ServiceCollectionExtensions
     {
-        public static void AddCustomSmartDialogueServices(this IServiceCollection services,ApplicationSettings applicationSettings, string model)
+        public static void AddCustomSmartDialogueServices(this IServiceCollection services,ApplicationSettings applicationSettings)
         {
             services.AddSmartDialogue(options =>
             {
