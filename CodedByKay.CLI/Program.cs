@@ -274,7 +274,7 @@ class Program
     {
         services.AddSmartDialogue(options =>
         {
-            options.OpenAIApiKey = "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";
+            options.OpenAIApiKey = "<api key>";
             options.Model = model;
             options.OpenAIApiUrl = "https://api.openai.com/v1/";
             options.MaxTokens = 1000;
@@ -287,7 +287,7 @@ class Program
         services.AddSmartDialogueAssistants(options =>
         {
             // All values are default for the CodedByKay.SmartDialogue.Assistants library
-            options.OpenAIApiKey = "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";
+            options.OpenAIApiKey = "<api key>";
             options.OpenAIAssistantId = "asst_M787iHIvBWfPZQwxokB6ChUF";
             options.OpenAIApiUrl = "https://api.openai.com/v1/";
             options.MaxTokens = 1000;
