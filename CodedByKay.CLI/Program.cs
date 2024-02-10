@@ -1,26 +1,32 @@
-﻿using CodedByKay.CLI.Models;
-using CodedByKay.SmartDialogue.Assistants.Interfaces;
-using CodedByKay.SmartDialogueAssistantsOptions.Assistants.Helpers;
-using CodedByKay.SmartDialogueLib;
-using CodedByKay.SmartDialogueLib.Interfaces;
+﻿using CodedByKay.CLI.Constants;
+using CodedByKay.CLI.Extensions;
+using CodedByKay.CLI.Handlers;
+using CodedByKay.CLI.Models;
 using CommandLine;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System;
 using System.Text;
 
 class Program
 {
-    private static List<string> commandHistory = new List<string>();
+    private static List<string> commandHistory = [];
     private static int historyIndex = -1;
-    private static readonly List<string> commands = new List<string> { "smart-dialogue", "assistants", "exit", "help" };
-    private static readonly string model = "gpt-3.5-turbo";
+    private static string model = string.Empty;
     static async Task Main(string[] args)
     {
-        DisplayHelp();
+        var configuration = ServiceCollectionExtensions.BuildConfiguration();
+        var appSettings = configuration.GetSection(ApplicationConstants.ApplicationSettingsString).Get<ApplicationSettings>();
+        if (appSettings == null)
+        {
+            throw new Exception("ApplicationSettings can not be null.");
+        }
 
+        model = appSettings.Model;
         var serviceCollection = new ServiceCollection();
-        ConfigureServices(serviceCollection);
+        ServiceCollectionExtensions.AddCustomSmartDialogueServices(serviceCollection, appSettings, model);
         var serviceProvider = serviceCollection.BuildServiceProvider();
+        
+        HandletDialogues.DisplayHelp();
 
         StringBuilder inputBuilder = new StringBuilder();
         ConsoleKeyInfo keyInfo;
@@ -32,7 +38,7 @@ class Program
             switch (keyInfo.Key)
             {
                 case ConsoleKey.Tab:
-                    HandleTabCompletion(ref inputBuilder, commands);
+                    HandleTabCompletion(ref inputBuilder, ApplicationConstants.Commands, ApplicationConstants.PromptText);
                     break;
                 case ConsoleKey.Enter:
                     await ExecuteCommandAsync(inputBuilder.ToString().Trim(), serviceProvider);
@@ -58,7 +64,7 @@ class Program
         }
     }
 
-    private static void HandleTabCompletion(ref StringBuilder inputBuilder, List<string> commands)
+    private static void HandleTabCompletion(ref StringBuilder inputBuilder, List<string> commands, string promptText)
     {
         var partialCommand = inputBuilder.ToString();
         var matches = commands.Where(c => c.StartsWith(partialCommand, StringComparison.OrdinalIgnoreCase)).ToList();
@@ -77,24 +83,27 @@ class Program
         }
 
         var match = matches[historyIndex];
+
+        // Clear the console line and redraw with prompt and matched command
         ClearCurrentConsoleLine();
-        Console.Write(match);
+        Console.Write($"\n{promptText}{match}"); // Combine the prompt text and the match
         inputBuilder.Clear();
-        inputBuilder.Append(match);
+        inputBuilder.Append(match); // Update the input builder with the matched command
     }
+
 
     private static async Task ExecuteCommandAsync(string command, IServiceProvider serviceProvider)
     {
         commandHistory.Add(command); // Add to history
         historyIndex = -1; // Reset history index
 
-        if (command == "exit")
+        if (command == ApplicationConstants.Exit)
         {
             Environment.Exit(0); // Exit application
         }
-        else if (command == "help")
+        else if (command == ApplicationConstants.Help)
         {
-            DisplayHelp();
+            HandletDialogues.DisplayHelp();
         }
         else
         {
@@ -102,8 +111,8 @@ class Program
             // Handle other commands
             await Parser.Default.ParseArguments<Options.SmartDialogueOptions, Options.AssistantsOptions>(new[] { command })
                 .MapResult(
-                    (Options.SmartDialogueOptions opts) => HandleSmartDialogue(serviceProvider, Guid.NewGuid()),
-                    (Options.AssistantsOptions opts) => HandleAssistants(serviceProvider, Guid.NewGuid()),
+                    (Options.SmartDialogueOptions opts) => HandletDialogues.HandleSmartDialogue(serviceProvider, Guid.NewGuid(), model),
+                    (Options.AssistantsOptions opts) => HandletDialogues.HandleAssistants(serviceProvider, Guid.NewGuid(), model),
                     errs =>
                     {
                         foreach (var err in errs)
@@ -124,7 +133,7 @@ class Program
                             }
                         }
 
-                        DisplayHelp(); // Consider showing help or usage information here
+                        HandletDialogues.DisplayHelp(); // Consider showing help or usage information here
 
                         return Task.FromResult(1); // Return a non-zero Task to indicate an error
                     });
@@ -139,7 +148,6 @@ class Program
             Console.Write("\b \b"); // Handle backspace visually
         }
     }
-
     private static void NavigateCommandHistory(int direction, ref StringBuilder inputBuilder)
     {
         if (commandHistory.Count == 0) return;
@@ -154,144 +162,10 @@ class Program
         ClearCurrentConsoleLine();
         Console.Write(inputBuilder.ToString());
     }
-
-
-    private static void DisplayHelp()
-    {
-        Console.Clear(); // Clear the console
-        PrintStartupMessage(); // Print the startup/help message
-    }
-
-
-    private static void PrintStartupMessage()
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan;
-        Console.WriteLine("CodedByKay.CLI 1.0.0\n");
-        Console.ResetColor(); // Reset to default color
-
-        Console.ForegroundColor = ConsoleColor.Yellow;
-        Console.WriteLine("Available commands:");
-        Console.ResetColor(); // Reset to default color
-
-        // Set specific colors for each command description
-        Console.ForegroundColor = ConsoleColor.Green;
-        Console.WriteLine("  smart-dialogue    - Use the Smart Dialogue Service.");
-        Console.WriteLine("  assistants        - Use the Smart Dialogue Assistants Service.");
-        Console.WriteLine("  exit              - Exit the application.");
-        Console.WriteLine("  help              - Display this help message.\n");
-        Console.ResetColor(); // Reset to default color
-
-        Console.ForegroundColor = ConsoleColor.White;
-        Console.Write("Enter a command: ");
-        Console.ResetColor(); // Reset to default color
-    }
-
-
-
     private static void ClearCurrentConsoleLine()
     {
-        int currentLineCursor = Console.CursorTop;
         Console.SetCursorPosition(0, Console.CursorTop);
         Console.Write(new string(' ', Console.WindowWidth));
-        Console.SetCursorPosition(0, currentLineCursor);
-    }
-
-    private static async Task HandleSmartDialogue(IServiceProvider serviceProvider, Guid userId)
-    {
-        var serviceFactory = serviceProvider.GetService<ISmartDialogueServiceFactory>();
-        if (serviceFactory == null)
-        {
-            Console.WriteLine("Smart Dialogue Service unavailable");
-            return;
-        }
-
-        Console.ForegroundColor = ConsoleColor.DarkYellow;
-        Console.WriteLine("Welcome to Smart Dialogue\n");
-        Console.ResetColor();
-
-        var service = serviceFactory.Create();
-        await HandleDialogue(service, userId);
-    }
-
-    private static async Task HandleAssistants(IServiceProvider serviceProvider, Guid userId)
-    {
-        var serviceFactory = serviceProvider.GetService<ISmartDialogueAssistantsServiceFactory>();
-        if (serviceFactory == null)
-        {
-            Console.WriteLine("Assistants Service unavailable");
-            return;
-        }
-
-        Console.ForegroundColor = ConsoleColor.Magenta;
-        Console.WriteLine("Welcome to Smart Dialogue Assistants\n");
-        Console.ResetColor();
-
-        var service = serviceFactory.Create();
-        await HandleDialogue(service, userId);
-    }
-
-
-    private static async Task HandleDialogue(dynamic service, Guid userId)
-    {
-        Console.ForegroundColor = ConsoleColor.Cyan; // Set user prompt color.
-        Console.Write("\nuser: "); // Display the prompt on the same line as where the user types their input.
-        Console.ResetColor(); // Reset to default color.
-
-        while (true)
-        {
-            var message = Console.ReadLine();
-            if (string.Equals(message, "exit", StringComparison.OrdinalIgnoreCase))
-            {
-                Console.Clear();
-                DisplayHelp(); // Call your help display method
-                break; // or continue based on your logic
-            }
-
-            if (!string.IsNullOrEmpty(message))
-            {
-                var response = await service.SendChatMessageAsync(userId, message);
-                Console.ForegroundColor = ConsoleColor.Yellow; // Set "Response" label color.
-                Console.Write($"\n{model}: ");
-                Console.ForegroundColor = ConsoleColor.White; // Set actual response text color.
-                Console.WriteLine($"{response}");
-                Console.ResetColor(); // Reset to default color after displaying the response.
-            }
-            else
-            {
-                Console.ForegroundColor = ConsoleColor.Red; // Set warning color.
-                Console.WriteLine("Message is empty, please enter a valid message or type 'exit' to return.");
-                Console.ResetColor(); // Reset to default color.
-            }
-            Console.ForegroundColor = ConsoleColor.Cyan; // Set user prompt color for the next message.
-            Console.Write("\nuser: "); // Prompt again for the next message on the same line.
-            Console.ResetColor(); // Reset to default color.
-        }
-    }
-
-
-
-    private static void ConfigureServices(IServiceCollection services)
-    {
-        services.AddSmartDialogue(options =>
-        {
-            options.OpenAIApiKey = "<api key>";
-            options.Model = model;
-            options.OpenAIApiUrl = "https://api.openai.com/v1/";
-            options.MaxTokens = 1000;
-            options.Temperature = 1;
-            options.TopP = 1;
-            options.AverageTokenLength = 2.85;
-
-        });
-
-        services.AddSmartDialogueAssistants(options =>
-        {
-            // All values are default for the CodedByKay.SmartDialogue.Assistants library
-            options.OpenAIApiKey = "<api key>";
-            options.OpenAIAssistantId = "<assistand id>";
-            options.OpenAIApiUrl = "https://api.openai.com/v1/";
-            options.MaxTokens = 1000;
-            options.AverageTokenLength = 2.85;
-        });
+        Console.SetCursorPosition(0, Console.CursorTop - 1);
     }
 }

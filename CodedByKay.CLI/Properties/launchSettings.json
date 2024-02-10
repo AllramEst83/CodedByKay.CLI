@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "CodedByKay.CLI": {
+      "commandName": "Project",
+      "environmentVariables": {
+        "CODEDBYKAY_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}
