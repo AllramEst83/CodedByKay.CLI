@@ -288,7 +288,7 @@ class Program
         {
             // All values are default for the CodedByKay.SmartDialogue.Assistants library
             options.OpenAIApiKey = "<api key>";
-            options.OpenAIAssistantId = "asst_M787iHIvBWfPZQwxokB6ChUF";
+            options.OpenAIAssistantId = "<assistand id>";
             options.OpenAIApiUrl = "https://api.openai.com/v1/";
             options.MaxTokens = 1000;
             options.AverageTokenLength = 2.85;
