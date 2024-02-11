@@ -3,13 +3,12 @@ using CodedByKay.SmartDialogueAssistantsOptions.Assistants.Helpers;
 using CodedByKay.SmartDialogueLib;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using System.Reflection;
 
 namespace CodedByKay.CLI.Extensions
 {
     internal static class ServiceCollectionExtensions
     {
-        public static void AddCustomSmartDialogueServices(this IServiceCollection services,ApplicationSettings applicationSettings)
+        public static void AddCustomSmartDialogueServices(this IServiceCollection services, ApplicationSettings applicationSettings)
         {
             services.AddSmartDialogue(options =>
             {

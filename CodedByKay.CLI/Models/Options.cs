@@ -15,5 +15,11 @@ namespace CodedByKay.CLI.Models
         {
             // Add options specific to the Assistants Service here
         }
+
+        [Verb("list-assistants", HelpText = "List assistants connected to your api key.")]
+        public class ListAssistantsOptions
+        {
+            // Add options specific to the Assistants Service here
+        }
     }
 }

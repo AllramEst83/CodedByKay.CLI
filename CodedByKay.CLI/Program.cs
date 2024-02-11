@@ -23,7 +23,7 @@ class Program
         var serviceCollection = new ServiceCollection();
         ServiceCollectionExtensions.AddCustomSmartDialogueServices(serviceCollection, appSettings);
         var serviceProvider = serviceCollection.BuildServiceProvider();
-        
+
         HandletDialogues.DisplayHelp();
 
         StringBuilder inputBuilder = new StringBuilder();
@@ -107,10 +107,11 @@ class Program
         {
             Console.Clear();
             // Handle other commands
-            await Parser.Default.ParseArguments<Options.SmartDialogueOptions, Options.AssistantsOptions>(new[] { command })
+            await Parser.Default.ParseArguments<Options.SmartDialogueOptions, Options.AssistantsOptions, Options.ListAssistantsOptions>(new[] { command })
                 .MapResult(
                     (Options.SmartDialogueOptions opts) => HandletDialogues.HandleSmartDialogue(serviceProvider, Guid.NewGuid(), "AI"),
                     (Options.AssistantsOptions opts) => HandletDialogues.HandleAssistants(serviceProvider, Guid.NewGuid(), "AI"),
+                    (Options.ListAssistantsOptions opts) => HandleAssistantsManager.ListAssistants(serviceProvider),
                     errs =>
                     {
                         foreach (var err in errs)
