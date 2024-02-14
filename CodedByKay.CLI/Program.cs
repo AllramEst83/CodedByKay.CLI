@@ -39,7 +39,7 @@ class Program
                     HandleTabCompletion(ref inputBuilder, ApplicationConstants.Commands, ApplicationConstants.PromptText);
                     break;
                 case ConsoleKey.Enter:
-                    await ExecuteCommandAsync(inputBuilder.ToString().Trim(), serviceProvider);
+                    await ExecuteCommandAsync(inputBuilder.ToString().Trim(), serviceProvider, appSettings);
                     inputBuilder.Clear(); // Clear the input builder for the next command
                     break;
                 case ConsoleKey.Backspace:
@@ -90,7 +90,7 @@ class Program
     }
 
 
-    private static async Task ExecuteCommandAsync(string command, IServiceProvider serviceProvider)
+    private static async Task ExecuteCommandAsync(string command, IServiceProvider serviceProvider, ApplicationSettings applicationSettings)
     {
         commandHistory.Add(command); // Add to history
         historyIndex = -1; // Reset history index
@@ -111,7 +111,7 @@ class Program
                 .MapResult(
                     (Options.SmartDialogueOptions opts) => HandletDialogues.HandleSmartDialogue(serviceProvider, Guid.NewGuid(), "AI"),
                     (Options.AssistantsOptions opts) => HandletDialogues.HandleAssistants(serviceProvider, Guid.NewGuid(), "AI"),
-                    (Options.ListAssistantsOptions opts) => HandleAssistantsManager.ListAssistants(serviceProvider),
+                    (Options.ListAssistantsOptions opts) => HandleAssistantsManager.ListAssistants(serviceProvider, applicationSettings),
                     errs =>
                     {
                         foreach (var err in errs)

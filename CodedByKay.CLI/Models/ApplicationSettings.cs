@@ -1,6 +1,6 @@
 ﻿namespace CodedByKay.CLI.Models
 {
-    internal class ApplicationSettings
+    public class ApplicationSettings
     {
         public string OpenAIApiKey { get; set; } = string.Empty;
         public string OpenAIAssistantId { get; set; } = string.Empty;

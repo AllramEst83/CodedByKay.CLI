@@ -1,4 +1,6 @@
-﻿using CodedByKay.CLI.Models;
+﻿using CodedByKay.CLI.Constants;
+using CodedByKay.CLI.Helpers;
+using CodedByKay.CLI.Models;
 using CodedByKay.SmartDialogue.Assistants.Interfaces;
 using CodedByKay.SmartDialogue.Assistants.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -17,6 +19,8 @@ namespace CodedByKay.CLI.Handlers
         private const ConsoleColor FirstBackgroundColor = ConsoleColor.DarkGreen;
         private const ConsoleColor SecondBackgroundColor = ConsoleColor.Yellow;
         private const ConsoleColor TextColor = ConsoleColor.Black;
+        private const ConsoleColor SuccessBackgroundCollor = ConsoleColor.Green;
+        private const ConsoleColor CycleAssistantIdsBackgroundColor = ConsoleColor.Yellow;
 
         /// <summary>
         /// Lists all assistants asynchronously by retrieving them from the service
@@ -24,7 +28,7 @@ namespace CodedByKay.CLI.Handlers
         /// </summary>
         /// <param name="serviceProvider">The service provider used to get services.</param>
         /// <exception cref="InvalidOperationException">Thrown if the service factory is not available in the provided <paramref name="serviceProvider"/>.</exception>
-        internal static async Task ListAssistants(IServiceProvider serviceProvider)
+        internal static async Task ListAssistants(IServiceProvider serviceProvider, ApplicationSettings applicationSettings)
         {
             var serviceFactory = serviceProvider.GetService<ISmartDialogueAssistantsServiceFactory>();
             if (serviceFactory == null)
@@ -34,6 +38,7 @@ namespace CodedByKay.CLI.Handlers
 
             var service = serviceFactory.Create();
             var assistantListResponse = await service.ListAssistants();
+            Assistant[] listOfAssistants = [.. assistantListResponse.Data];
 
             DisplayHeader();
 
@@ -44,7 +49,9 @@ namespace CodedByKay.CLI.Handlers
                 isDarkGreen = !isDarkGreen;
             }
 
-            PromptUserForCommand();
+            await PromptUserForCommand(applicationSettings, listOfAssistants);
+
+            HandletDialogues.DisplayHelp();
         }
 
         /// <summary>
@@ -100,15 +107,113 @@ namespace CodedByKay.CLI.Handlers
         /// <summary>
         /// Prompts the user for a command, then displays the help dialogue.
         /// </summary>
-        private static void PromptUserForCommand()
+        private static async Task PromptUserForCommand(ApplicationSettings applicationSettings, Assistant[] listOfAssistants)
+        {
+            var listOfAssistantIds = listOfAssistants.Select(i => i.Id).ToList();
+            if (!listOfAssistantIds.Any())
+            {
+                DisplayFeedback("No assistants available.");
+                return;
+            }
+
+            int currentIndex = 0; // Start with the first assistant ID.
+            Console.WriteLine("\nNavigate through Assistant IDs using UP and DOWN arrow keys.");
+            Console.WriteLine("Press ENTER to select the highlighted Assistant ID.");
+            Console.WriteLine("Press E to exit.");
+
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.Yellow;
+            Console.Write("\nCurrent Assistant ID: ");
+            Console.ResetColor();
+
+            // Initial display of the first assistant ID.
+            Console.ForegroundColor = TextColor;
+            Console.BackgroundColor = CycleAssistantIdsBackgroundColor;
+            Console.Write(listOfAssistantIds[currentIndex]);
+            Console.ResetColor();
+            while (true)
+            {
+                var key = Console.ReadKey(intercept: true); // Do not display the pressed key.
+
+                switch (key.Key)
+                {
+                    case ConsoleKey.DownArrow:
+                        currentIndex = (currentIndex + 1) % listOfAssistantIds.Count; // Cycle forward through the list.
+                        break;
+                    case ConsoleKey.UpArrow:
+                        currentIndex = (currentIndex - 1 + listOfAssistantIds.Count) % listOfAssistantIds.Count; // Cycle backward through the list.
+                        break;
+                    case ConsoleKey.Enter:
+                        // Attempt to update the assistant ID with the current selection.
+                        var selectedAssistantId = listOfAssistantIds[currentIndex];
+                        if (await TryUpdateAssistantId(applicationSettings, selectedAssistantId))
+                        {
+                            DisplaySuccessMessage();
+                            return; // Exit after successful update.
+                        }
+                        else
+                        {
+                            DisplayFeedback("\nAn error occurred while updating the settings. Please restart the CLI tool.");
+                            return; // Optionally exit or allow the user to try again.
+                        }
+                    case ConsoleKey.E:
+                        return; // Exit without updating if 'E' is pressed.
+                }
+
+                UpdateCurrentAssistantIdDisplay(listOfAssistantIds[currentIndex]);
+            }
+        }
+
+        private static void UpdateCurrentAssistantIdDisplay(string currentAssistantId)
+        {
+            // Move the cursor back to the start of the assistant ID display area.
+            Console.SetCursorPosition("Current Assistant ID: ".Length, Console.CursorTop);
+
+            // Clear the line from the current position.
+            Console.Write(new string(' ', Console.WindowWidth - Console.CursorLeft));
+
+            // Reset the cursor position again to rewrite the assistant ID.
+            Console.SetCursorPosition("Current Assistant ID: ".Length, Console.CursorTop);
+
+            Console.ForegroundColor = TextColor;
+            Console.BackgroundColor = CycleAssistantIdsBackgroundColor;
+            Console.Write(currentAssistantId);
+            Console.ResetColor();
+        }
+
+
+        private static void DisplayInitialInstructions()
         {
             Console.ForegroundColor = InputColor;
-            Console.Write("\nPress any key to continue...");
+            Console.Write("\nEnter assistant id to switch from the default one (gpt-3.5-turbo).\nEnter exit to exit.");
             Console.ResetColor();
-            Console.ReadLine();
-            // Assuming HandletDialogues.DisplayHelp() is defined elsewhere and provides help information to the user.
-            HandletDialogues.DisplayHelp();
+            Console.Write("\nEnter command: ");
+        }
+
+        private static string GetUserCommand()
+        {
+            return Console.ReadLine()?.Trim() ?? string.Empty;
+        }
+
+        private static async Task<bool> TryUpdateAssistantId(ApplicationSettings applicationSettings, string assistantId)
+        {
+            applicationSettings.OpenAIAssistantId = assistantId;
+            return await ApplicationHelpers.UpdateAppSettingsAsync(applicationSettings.OpenAIAssistantId);
+        }
+
+        private static void DisplayFeedback(string message)
+        {
+            Console.WriteLine(message);
+            Console.Write("\nEnter command: "); // Prompt for next command.
+        }
+
+        private static void DisplaySuccessMessage()
+        {
+            Console.ForegroundColor = TextColor;
+            Console.BackgroundColor = SuccessBackgroundCollor;
+            Console.WriteLine("\n\nAssistant id has been successfully updated.Please  restart CLI tool 'smartd' Press any key to continue...");
+            Console.ResetColor();
+            Console.ReadKey();
         }
     }
-
 }
