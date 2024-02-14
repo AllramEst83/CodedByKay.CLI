@@ -100,7 +100,7 @@ namespace CodedByKay.CLI.Handlers
             Console.ForegroundColor = ConsoleColor.Green;
             Console.WriteLine("  smart-dialogue    - Use the Smart Dialogue Service.");
             Console.WriteLine("  assistants        - Use the Smart Dialogue Assistants Service.");
-            Console.WriteLine("  list-assistants   - List assistants connected to your api key.");
+            Console.WriteLine("  list-assistants   - List and swicth assistants connected to your api key.");
             Console.WriteLine("  exit              - Exit the application or dialogues.");
             Console.WriteLine("  help              - Display this help message.\n");
             Console.ResetColor(); // Reset to default color
