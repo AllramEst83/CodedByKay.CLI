@@ -64,7 +64,3 @@ This guide will walk you through the process of compiling a .NET console applica
 - Open a new Command Prompt or PowerShell window.
 - Type `smartd` and press Enter. If everything is set up correctly, your application should run, indicating that `smartd` is now recognized as a command.
 
-## Tips for Distribution
-
-- If you plan to share your `smartd` tool, consider creating a simple installer script that automates the steps above, especially updating the PATH variable.
-- Include clear instructions for users on how to undo the changes, should they wish to remove the command from their system.
