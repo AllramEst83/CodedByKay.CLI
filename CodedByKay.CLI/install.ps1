@@ -12,7 +12,7 @@ Set-Location -Path $PSScriptRoot
 $solutionPath = Join-Path -Path $PSScriptRoot -ChildPath "..\CodedByKay.CLI.sln"
 
 # Define the target installation directory
-$installDir = "C:\devtools"
+$installDir = "C:\codedbykay\devtools"
 
 # Correctly reference the csproj file relative to the script's directory
 $csprojPath = ".\CodedByKay.CLI.csproj"
